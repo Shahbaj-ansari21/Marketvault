@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Eye, EyeOff, ExternalLink, AlertCircle, Check, X, Clock, ShieldCheck, Settings, Megaphone, Inbox } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Eye, EyeOff, ExternalLink, AlertCircle, Check, X, Clock, ShieldCheck, Settings, Megaphone, Inbox, Image } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useAdmin, useApprovalQueue } from '../hooks/useAdmin';
 import { useAllAds } from '../hooks/useAds';
+import { useAllFooterBanners } from '../hooks/useFooterBanners';
 import { getFileTypeInfo, timeAgo } from '../types';
 import type { DesignWithProfile } from '../types';
 
-type Tab = 'queue' | 'ads';
+type Tab = 'queue' | 'ads' | 'banners';
 
 export function AdminPage() {
   const { user } = useAuth();
@@ -15,6 +16,7 @@ export function AdminPage() {
   const { isAdmin, checking, registerAdmin } = useAdmin();
   const { pending, loading: pqLoading, approve, reject } = useApprovalQueue();
   const { ads, loading, create, update, remove } = useAllAds();
+  const { banners, loading: bLoading, create: createBanner, toggle: toggleBanner, remove: removeBanner } = useAllFooterBanners();
   const [tab, setTab] = useState<Tab>('queue');
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerMsg, setRegisterMsg] = useState('');
@@ -27,7 +29,6 @@ export function AdminPage() {
     );
   }
 
-  // Not signed in
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -41,7 +42,6 @@ export function AdminPage() {
     );
   }
 
-  // Not an admin — show ad viewer only (no ad manager)
   if (!isAdmin) {
     return (
       <div className="min-h-screen py-8">
@@ -74,7 +74,6 @@ export function AdminPage() {
     );
   }
 
-  // === ADMIN VIEW ===
   const handleRegisterAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!registerEmail.trim()) return;
@@ -99,23 +98,26 @@ export function AdminPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="card p-4"><div className="text-xs text-dark-500">Pending Approval</div><div className="font-display text-2xl font-bold text-warning-400 mt-1">{pending.length}</div></div>
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          <div className="card p-4"><div className="text-xs text-dark-500">Pending</div><div className="font-display text-2xl font-bold text-warning-400 mt-1">{pending.length}</div></div>
           <div className="card p-4"><div className="text-xs text-dark-500">Total Ads</div><div className="font-display text-2xl font-bold text-primary-400 mt-1">{ads.length}</div></div>
           <div className="card p-4"><div className="text-xs text-dark-500">Active Ads</div><div className="font-display text-2xl font-bold text-success-400 mt-1">{ads.filter(a => a.is_active).length}</div></div>
+          <div className="card p-4"><div className="text-xs text-dark-500">Footer Banners</div><div className="font-display text-2xl font-bold text-accent-400 mt-1">{banners.filter(b => b.is_active).length}</div></div>
         </div>
 
         {/* Tabs */}
         <div className="flex items-center gap-1 mb-6 bg-dark-800/50 p-1 rounded-lg w-fit">
-          <button onClick={() => setTab('queue')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium ${tab === 'queue' ? 'bg-primary-500 text-white' : 'text-dark-400 hover:text-dark-200'}`}>
+          <button onClick={() => setTab('queue')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'queue' ? 'bg-primary-500 text-white' : 'text-dark-400 hover:text-dark-200'}`}>
             <Inbox className="w-4 h-4" /> Approval Queue {pending.length > 0 && <span className="bg-error-500 text-white text-xs px-1.5 rounded-full">{pending.length}</span>}
           </button>
-          <button onClick={() => setTab('ads')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium ${tab === 'ads' ? 'bg-primary-500 text-white' : 'text-dark-400 hover:text-dark-200'}`}>
+          <button onClick={() => setTab('ads')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'ads' ? 'bg-primary-500 text-white' : 'text-dark-400 hover:text-dark-200'}`}>
             <Megaphone className="w-4 h-4" /> Ad Manager
+          </button>
+          <button onClick={() => setTab('banners')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'banners' ? 'bg-primary-500 text-white' : 'text-dark-400 hover:text-dark-200'}`}>
+            <Image className="w-4 h-4" /> Footer Banners
           </button>
         </div>
 
-        {/* === APPROVAL QUEUE === */}
         {tab === 'queue' && (
           <div className="space-y-3">
             {pqLoading ? (
@@ -131,8 +133,17 @@ export function AdminPage() {
           </div>
         )}
 
-        {/* === AD MANAGER === */}
         {tab === 'ads' && <AdManager ads={ads} loading={loading} create={create} update={update} remove={remove} />}
+
+        {tab === 'banners' && (
+          <BannerManager
+            banners={banners}
+            loading={bLoading}
+            create={createBanner}
+            toggle={toggleBanner}
+            remove={removeBanner}
+          />
+        )}
 
         {/* Admin Management */}
         <div className="card p-5 mt-6">
@@ -218,7 +229,6 @@ function AdManager({ ads, loading, create, update, remove }: any) {
           </button>
         </form>
       </div>
-
       <div className="card overflow-hidden">
         <div className="p-4 border-b border-dark-700"><h3 className="font-display text-sm font-semibold text-dark-100">All Ads ({ads.length})</h3></div>
         {loading ? <div className="p-4 space-y-2">{Array.from({ length: 2 }).map((_, i) => <div key={i} className="h-16 bg-dark-800 rounded shimmer" />)}</div>
@@ -242,6 +252,104 @@ function AdManager({ ads, loading, create, update, remove }: any) {
               </div>
             ))}
           </div>}
+      </div>
+    </div>
+  );
+}
+
+function BannerManager({ banners, loading, create, toggle, remove }: any) {
+  const [form, setForm] = useState({ image_url: '', link_url: '', alt_text: '', sort_order: 0 });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [preview, setPreview] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.image_url) { setError('Image URL is required'); return; }
+    setSubmitting(true); setError('');
+    const { error: err } = await create(form);
+    setSubmitting(false);
+    if (err) setError(err.message);
+    else { setForm({ image_url: '', link_url: '', alt_text: '', sort_order: 0 }); setPreview(''); }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="card p-5">
+        <h3 className="font-display text-sm font-semibold text-dark-100 mb-1 flex items-center gap-2"><Image className="w-4 h-4 text-accent-400" />Add Footer Banner Photo</h3>
+        <p className="text-xs text-dark-500 mb-4">These photos appear at the bottom of every page. Use them for sponsors, partners, or featured content.</p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <input
+              type="url"
+              className="input"
+              placeholder="Image URL (https://...)"
+              value={form.image_url}
+              onChange={e => { setForm({ ...form, image_url: e.target.value }); setPreview(e.target.value); }}
+              required
+            />
+            {preview && (
+              <div className="mt-2 rounded-lg overflow-hidden border border-dark-700 bg-dark-800 h-24 flex items-center justify-center">
+                <img src={preview} alt="preview" className="h-full w-auto object-contain" onError={() => setPreview('')} />
+              </div>
+            )}
+          </div>
+          <input type="url" className="input" placeholder="Link URL (optional — makes photo clickable)" value={form.link_url} onChange={e => setForm({ ...form, link_url: e.target.value })} />
+          <input type="text" className="input" placeholder="Alt text (optional)" value={form.alt_text} onChange={e => setForm({ ...form, alt_text: e.target.value })} />
+          <input type="number" className="input" placeholder="Sort order (0 = first)" value={form.sort_order} onChange={e => setForm({ ...form, sort_order: Number(e.target.value) })} min={0} />
+          {error && <p className="text-sm text-error-400 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{error}</p>}
+          <button type="submit" disabled={submitting} className="btn-primary justify-center w-full py-2.5">
+            {submitting ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Adding...</span> : <span className="flex items-center gap-2"><Plus className="w-4 h-4" />Add Banner Photo</span>}
+          </button>
+        </form>
+      </div>
+
+      <div className="card overflow-hidden">
+        <div className="p-4 border-b border-dark-700">
+          <h3 className="font-display text-sm font-semibold text-dark-100">All Banner Photos ({banners.length})</h3>
+          <p className="text-xs text-dark-500 mt-0.5">Active banners show in the footer. Toggle to hide/show.</p>
+        </div>
+        {loading ? (
+          <div className="p-4 space-y-2">{Array.from({ length: 2 }).map((_, i) => <div key={i} className="h-20 bg-dark-800 rounded shimmer" />)}</div>
+        ) : banners.length === 0 ? (
+          <div className="py-10 text-center">
+            <Image className="w-8 h-8 text-dark-600 mx-auto mb-2" />
+            <p className="text-sm text-dark-500">No banner photos yet. Add one above.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-dark-700">
+            {banners.map((b: any) => (
+              <div key={b.id} className={`p-3 flex items-center gap-3 ${!b.is_active ? 'opacity-50' : ''}`}>
+                <div className="w-20 h-14 rounded-lg overflow-hidden bg-dark-700 shrink-0 border border-dark-600">
+                  <img src={b.image_url} alt={b.alt_text || ''} className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${b.is_active ? 'bg-success-500/20 text-success-400' : 'bg-dark-700 text-dark-500'}`}>
+                      {b.is_active ? 'Visible' : 'Hidden'}
+                    </span>
+                    {b.link_url && <span className="text-xs text-dark-500 flex items-center gap-1 truncate max-w-xs"><ExternalLink className="w-3 h-3" />{b.link_url}</span>}
+                  </div>
+                  <p className="text-xs text-dark-500 mt-1">Order: {b.sort_order}</p>
+                </div>
+                <button
+                  onClick={() => toggle(b.id, !b.is_active)}
+                  className="p-1.5 rounded-lg hover:bg-dark-700 text-dark-400 hover:text-primary-400 transition-colors"
+                  title={b.is_active ? 'Hide' : 'Show'}
+                >
+                  {b.is_active ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+                <button
+                  onClick={() => remove(b.id)}
+                  className="p-1.5 rounded-lg hover:bg-dark-700 text-dark-400 hover:text-error-400 transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
