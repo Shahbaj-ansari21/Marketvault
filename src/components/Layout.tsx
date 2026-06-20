@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
+import { useFooterBanners } from '../hooks/useFooterBanners';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth();
@@ -15,6 +16,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [dropOpen, setDropOpen] = useState(false);
   const [q, setQ] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const { banners } = useFooterBanners();
 
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,6 +176,27 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Footer */}
       <footer className="border-t border-dark-700/50 bg-dark-900/50 mt-auto">
+        {/* Admin-managed banner photos */}
+        {banners.length > 0 && (
+          <div className="border-b border-dark-700/50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+              <div className="flex flex-wrap gap-3 justify-center">
+                {banners.map(b => (
+                  b.link_url ? (
+                    <a key={b.id} href={b.link_url} target="_blank" rel="noopener noreferrer"
+                      className="rounded-lg overflow-hidden border border-dark-700 hover:border-primary-500/50 transition-all hover:scale-105 shrink-0">
+                      <img src={b.image_url} alt={b.alt_text || ''} className="h-20 w-auto object-cover" />
+                    </a>
+                  ) : (
+                    <div key={b.id} className="rounded-lg overflow-hidden border border-dark-700 shrink-0">
+                      <img src={b.image_url} alt={b.alt_text || ''} className="h-20 w-auto object-cover" />
+                    </div>
+                  )
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
@@ -194,7 +217,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className="space-y-1 text-sm text-dark-400">
                 <p>100% Free to use</p>
                 <p>Telegram Cloud Storage</p>
-                <p>Open Source on GitHub</p>
                 <p>Community driven</p>
               </div>
             </div>
@@ -202,7 +224,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="h-px bg-dark-800 my-6" />
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-dark-500">
             <p>DesignVault — Free Design Marketplace</p>
-            <p>Open Source Project</p>
+            <p>Made with love for designers</p>
           </div>
         </div>
       </footer>
