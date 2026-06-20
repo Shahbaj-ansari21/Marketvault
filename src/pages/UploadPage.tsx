@@ -7,8 +7,6 @@ import { useCategories } from '../hooks/useCategories';
 import { uploadFileToTelegram, isTelegramConfigured } from '../lib/telegram';
 import { getFileTypeInfo, formatFileSize, ALLOWED_EXTENSIONS } from '../types';
 
-
-
 export function UploadPage() {
   const { user, session } = useAuth();
   const navigate = useNavigate();
@@ -86,7 +84,7 @@ export function UploadPage() {
             <AlertCircle className="w-4 h-4 text-warning-400 shrink-0 mt-0.5" />
             <div className="text-sm text-warning-400">
               <p className="font-medium">Telegram not configured</p>
-              <p className="text-xs mt-1">Add VITE_TELEGRAM_BOT_TOKEN and VITE_TELEGRAM_CHANNEL_ID to your .env file.</p>
+              <p className="text-xs mt-1">Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHANNEL_ID as Supabase Edge Function secrets.</p>
             </div>
           </div>
         )}
